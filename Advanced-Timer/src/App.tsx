@@ -3,6 +3,7 @@ import './App.css';
 import { Duration, type DurationParts } from './util/types';
 
 function App() {
+  const [initialDuration, setInitialDuration] = useState<Duration>(Duration.fromParts({ hours: 0, minutes: 0, seconds: 0 }));
   const [timeLeft, setTimeLeft] = useState<Duration>(Duration.fromParts({ hours: 0, minutes: 0, seconds: 0 }));
   const [isRunning, setIsRunning] = useState(false);
 
@@ -18,12 +19,32 @@ function App() {
         setIsRunning(false);
       }, 0);
       clearInterval(timer);
+      setTimeout(() => {
+        alert('Time is up!');
+        setTimeLeft(initialDuration);
+      }, 1000);
     }
 
     return () => clearInterval(timer);
-  }, [isRunning, timeLeft]);
+  }, [initialDuration, isRunning, timeLeft]);
 
-  const timeParts: DurationParts = timeLeft.toParts();
+  const handleStartPause = () => {
+    if (isRunning) {
+      setIsRunning(false);
+      return;
+    }
+
+    if (timeLeft.isTimeUp()) {
+      setTimeLeft(initialDuration);
+    }
+
+    if (!initialDuration.isTimeUp()) {
+      setIsRunning(true);
+    }
+  };
+
+  const activeDuration = isRunning ? timeLeft : initialDuration;
+  const timeParts: DurationParts = activeDuration.toParts();
 
   return (
     <>
@@ -41,7 +62,7 @@ function App() {
               type="number"
               min="0"
               value={timeParts.hours}
-              onChange={e => setTimeLeft(prev => prev.setHours(Number(e.target.value)))}
+              onChange={e => setInitialDuration(prev => prev.setHours(Number(e.target.value)))}
             />
             <label>Minutes: </label>
             <input
@@ -49,7 +70,7 @@ function App() {
               min="0"
               max="59"
               value={timeParts.minutes}
-              onChange={e => setTimeLeft(prev => prev.setMinutes(Number(e.target.value)))}
+              onChange={e => setInitialDuration(prev => prev.setMinutes(Number(e.target.value)))}
             />
             <label>Seconds: </label>
             <input
@@ -57,18 +78,30 @@ function App() {
               min="0"
               max="59"
               value={timeParts.seconds}
-              onChange={e => setTimeLeft(prev => prev.setSeconds(Number(e.target.value)))}
+              onChange={e => setInitialDuration(prev => prev.setSeconds(Number(e.target.value)))}
             />
           </div>
         )}
-        <button onClick={() => setIsRunning(!isRunning)}>
+        <button
+          onClick={handleStartPause}
+          disabled={activeDuration.isTimeUp()}
+        >
           {isRunning ? 'Pause' : 'Start'}
         </button>
         <button onClick={() => {
           setIsRunning(false);
+          setTimeLeft(initialDuration);
+        }}
+          disabled={activeDuration.isTimeUp() && !isRunning}
+        >
+          Reset
+        </button>
+        <button onClick={() => {
+          setIsRunning(false);
+          setInitialDuration(Duration.fromParts({ hours: 0, minutes: 0, seconds: 0 }));
           setTimeLeft(Duration.fromParts({ hours: 0, minutes: 0, seconds: 0 }));
         }}>
-          Reset
+          Clear
         </button>
       </div>
     </>
